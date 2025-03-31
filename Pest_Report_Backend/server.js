@@ -1,12 +1,12 @@
-require("dotenv").config();
+require("dotenv").config(); // <<< Keep at the top
 const express = require("express");
 const mongoose = require("mongoose");
 const path = require('path');
-const cors = require("cors");
+const cors = require("cors"); // <<< Make sure required
 const cookieParser = require("cookie-parser");
 
-const authRoutes = require("./routes/authRoutes");  // User Authentication Routes
-const adminRoutes = require("./routes/adminRoutes"); // Admin Authentication Routes
+const authRoutes = require("./routes/authRoutes");
+const adminRoutes = require("./routes/adminRoutes");
 const userRoutes =  require("./routes/userRoutes");
 const reportRoutes = require("./routes/reportRoutes");
 const app = express();
@@ -16,28 +16,41 @@ mongoose.connect(process.env.MONGO_URI)
     .then(() => console.log("✅ Connected to MongoDB"))
     .catch((err) => console.error("❌ MongoDB connection error:", err));
 
-// ✅ Middleware
-app.use(express.json());
-app.use(cookieParser());
+
+// --- START CORS Configuration Update ---
+
+// Use the environment variable set in Render for production,
+// fallback to localhost for local development
+const allowedOrigin = process.env.CORS_ORIGIN || 'http://localhost:5173';
 
 const corsOptions = {
-    origin: 'http://localhost:5173', // Frontend URL
-    methods: ['GET', 'POST', 'PUT', 'DELETE'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-    credentials: true, // Allow credentials (cookies, authorization headers)
+    origin: allowedOrigin, // <<< Use the variable here
+    methods: ['GET', 'POST', 'PUT', 'DELETE'], // Standard methods
+    allowedHeaders: ['Content-Type', 'Authorization'], // Standard headers
+    credentials: true, // Allow cookies/auth headers if needed
 };
 
+console.log(`🔄 Configuring CORS for origin: ${allowedOrigin}`); // Log for debugging
+
+// Apply CORS middleware *BEFORE* your routes
 app.use(cors(corsOptions));
+
+// --- END CORS Configuration Update ---
+
+
+// ✅ Other Middleware (AFTER CORS)
+app.use(express.json());
+app.use(cookieParser());
+// Use path.join for static uploads - remove the duplicate later
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use(express.urlencoded({ extended: true }));
-  
-// ✅ Routes
+
+// ✅ Routes (AFTER middleware)
 app.use("/api/auth", authRoutes);
-app.use("/api/user", userRoutes);  // ✅ Ensure this is added
+app.use("/api/user", userRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/reports", reportRoutes);
-app.use("/uploads", express.static("uploads"));
-console.log("User Routes:", userRoutes); // Debugging
+
 
 
 // ✅ Start Server
