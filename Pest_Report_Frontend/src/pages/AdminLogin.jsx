@@ -1,8 +1,8 @@
-// src/pages/AdminLogin.js (or components)
+// src/pages/AdminLogin.jsx (or components)
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from 'axios';
-// Assuming you have these custom components, otherwise use standard inputs/buttons
+// Assuming you have these custom components
 import InputField from "../components/InputField";
 import Button from "../components/Button";
 
@@ -23,18 +23,21 @@ const AdminLogin = () => {
     setError('');
 
     try {
+      // --- CHANGE IS HERE ---
+      // Using relative path now, axios will prepend the baseURL
       const response = await axios.post(
-        'http://localhost:3000/api/admin/login', // Using full URL as it worked
+        '/api/admin/login', // <<< Relative path used here
         formData,
         { headers: { 'Content-Type': 'application/json' } }
       );
+      // --------------------
 
       const { token } = response.data;
       localStorage.setItem('adminToken', token); // Store token
 
-      // --- Redirect to the Admin Reports Page ---
-      console.log("Login successful, navigating to /admin/reports"); // Optional debug log
-      navigate('/admin/reports'); // <<< CHANGED HERE
+      // Redirect to the Admin Reports Page
+      console.log("Login successful, navigating to /admin/reports");
+      navigate('/admin/reports');
 
     } catch (err) {
       console.error("--- Full Error Object Caught ---");
@@ -44,6 +47,7 @@ const AdminLogin = () => {
       setError(err.response?.data?.msg || 'Login failed. Please check credentials or server connection.');
     }
   };
+
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100">
       <div className="bg-white p-8 rounded-lg shadow-lg w-96">
@@ -51,7 +55,7 @@ const AdminLogin = () => {
           Admin Login
         </h2>
         <form onSubmit={handleSubmit}>
-          {/* Replace InputField/Button with standard elements if needed */}
+          {/* Your InputField and Button components */}
           <InputField
             label="Admin Email" type="email" name="email"
             value={formData.email} onChange={handleChange}

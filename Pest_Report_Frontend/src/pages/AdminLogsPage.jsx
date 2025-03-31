@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+// Import Icons if used within this component (e.g., for pagination buttons if you add icons)
+// import { ChevronLeftIcon, ChevronRightIcon } from '../../components/Icons'; // Adjust path
 
 // Note: This page will be rendered inside AdminLayout, so no Navbar needed here
 
@@ -14,7 +16,7 @@ const AdminLogsPage = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [totalCount, setTotalCount] = useState(0);
-    const itemsPerPage = 20; // Or get from backend if variable limit
+    const itemsPerPage = 20;
 
     // --- Fetch Activity Logs ---
     const fetchActivityLogs = async (page = 1) => {
@@ -25,14 +27,16 @@ const AdminLogsPage = () => {
             const token = localStorage.getItem('adminToken');
             if (!token) throw new Error("Admin token not found.");
 
-            // Call backend endpoint with pagination params
-            const response = await axios.get('http://localhost:3000/api/admin/logs', {
+            // --- CHANGE IS HERE ---
+            // Using relative path now, axios will prepend the baseURL
+            const response = await axios.get('/api/admin/logs', { // <<< Relative path
                 headers: { 'Authorization': `Bearer ${token}` },
                 params: {
                     page: page,
                     limit: itemsPerPage
                 }
             });
+            // --------------------
             console.log("Activity logs fetched:", response.data);
 
             // Assuming backend sends { logs: [...], currentPage: ..., totalPages: ..., totalCount: ... }
@@ -57,34 +61,17 @@ const AdminLogsPage = () => {
     // Fetch logs when component mounts or page changes
     useEffect(() => {
         fetchActivityLogs(currentPage);
-    }, [currentPage]); // Re-fetch when currentPage state changes
+    }, [currentPage]);
 
     // --- Helper function to format timestamp ---
     const formatTimestamp = (timestamp) => {
-        if (!timestamp) return 'N/A';
-        try {
-            // More detailed format
-            return new Date(timestamp).toLocaleString('en-US', {
-                dateStyle: 'medium', // e.g., Mar 31, 2025
-                timeStyle: 'short'   // e.g., 3:45 AM
-            });
-        } catch (e) {
-            return 'Invalid Date';
-        }
+        // ... (same as before) ...
+        if (!timestamp) return 'N/A'; try { return new Date(timestamp).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' }); } catch (e) { return 'Invalid Date'; }
     };
 
     // --- Pagination Handlers ---
-    const handleNextPage = () => {
-        if (currentPage < totalPages) {
-            setCurrentPage(currentPage + 1);
-        }
-    };
-
-    const handlePrevPage = () => {
-        if (currentPage > 1) {
-            setCurrentPage(currentPage - 1);
-        }
-    };
+    const handleNextPage = () => { if (currentPage < totalPages) { setCurrentPage(currentPage + 1); } };
+    const handlePrevPage = () => { if (currentPage > 1) { setCurrentPage(currentPage - 1); } };
 
     // --- Render Logic ---
     return (
@@ -100,19 +87,11 @@ const AdminLogsPage = () => {
                 <>
                     <div className="overflow-x-auto shadow-md sm:rounded-lg mb-6">
                         <table className="w-full text-sm text-left text-gray-500 ">
-                            <thead className="text-xs text-gray-700 uppercase bg-gray-100">
-                                <tr>
-                                    <th scope="col" className="px-6 py-3">Timestamp</th>
-                                    <th scope="col" className="px-6 py-3">User</th>
-                                    <th scope="col" className="px-6 py-3">Action</th>
-                                    <th scope="col" className="px-6 py-3">Details</th>
-                                </tr>
-                            </thead>
+                            {/* ... (thead remains the same) ... */}
+                            <thead className="text-xs text-gray-700 uppercase bg-gray-100"><tr><th scope="col" className="px-6 py-3">Timestamp</th><th scope="col" className="px-6 py-3">User</th><th scope="col" className="px-6 py-3">Action</th><th scope="col" className="px-6 py-3">Details</th></tr></thead>
                             <tbody>
                                 {logs.length === 0 ? (
-                                    <tr>
-                                        <td colSpan="4" className="text-center px-6 py-4">No activity logs found.</td>
-                                    </tr>
+                                    <tr><td colSpan="4" className="text-center px-6 py-4">No activity logs found.</td></tr>
                                 ) : (
                                     logs.map((log) => (
                                         <tr key={log._id} className="bg-white border-b hover:bg-gray-50">
@@ -120,7 +99,6 @@ const AdminLogsPage = () => {
                                             <td className="px-6 py-4">{log.userId?.username || log.userId?.email || 'N/A'}</td>
                                             <td className="px-6 py-4">{log.action}</td>
                                             <td className="px-6 py-4">
-                                                {/* Display relevant details based on action */}
                                                 {log.action === 'RankUpdated' && `Points: ${log.pointsChange}, Rank: ${log.oldRank || 'N/A'} -> ${log.newRank || 'N/A'}`}
                                                 {log.details && ` (${log.details})`}
                                             </td>
@@ -133,25 +111,7 @@ const AdminLogsPage = () => {
 
                     {/* Pagination Controls */}
                     {totalPages > 1 && (
-                        <div className="flex justify-between items-center mt-4">
-                            <button
-                                onClick={handlePrevPage}
-                                disabled={currentPage <= 1}
-                                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white rounded-md border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                                Previous
-                            </button>
-                            <span className="text-sm text-gray-700">
-                                Page {currentPage} of {totalPages} (Total: {totalCount} logs)
-                            </span>
-                            <button
-                                onClick={handleNextPage}
-                                disabled={currentPage >= totalPages}
-                                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white rounded-md border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                                Next
-                            </button>
-                        </div>
+                         <div className="flex justify-between items-center mt-4"> <button onClick={handlePrevPage} disabled={currentPage <= 1} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white rounded-md border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"> Previous </button> <span className="text-sm text-gray-700"> Page {currentPage} of {totalPages} (Total: {totalCount} logs) </span> <button onClick={handleNextPage} disabled={currentPage >= totalPages} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white rounded-md border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"> Next </button> </div>
                     )}
                 </>
             )}
