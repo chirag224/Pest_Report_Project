@@ -2,10 +2,9 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import ReportCard from "../components/ReportCard"; // Use corrected path if needed
-// Use corrected path if needed
-import { CloseIcon, ChevronLeftIcon, ChevronRightIcon } from "../components/Icons";
+import { CloseIcon, ChevronLeftIcon, ChevronRightIcon } from "../components/Icons"; // Use corrected path if needed
 
-// Assuming Navbar is handled by UserLayout, removed import
+// Assuming Navbar is handled by UserLayout
 
 const PreviousReports = () => {
   const [reports, setReports] = useState([]);
@@ -14,43 +13,34 @@ const PreviousReports = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // --- Define backendUrl using Vite env variable ---
+  // Read during build on Render, fallback for local dev
+  const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+  // ------------------------------------------------
+
   // Fetch user's reports
   useEffect(() => {
-    const token = localStorage.getItem("token"); // User token
-    if (!token) {
-      console.error("❌ Token not found. User not logged in.");
-      setError("Not logged in.");
-      setIsLoading(false);
-      return;
-    }
+    const token = localStorage.getItem("token");
+    if (!token) { /* ... error handling ... */ setError("Not logged in."); setIsLoading(false); return; }
 
     setIsLoading(true);
     setError(null);
 
-    // --- CHANGE IS HERE ---
-    // Using relative path now
     axios
-      .get("/api/reports/my-reports", { // <<< Relative path
+      .get("/api/reports/my-reports", { // <<< Relative path (Corrected previously)
         headers: { Authorization: `Bearer ${token}` },
       })
-      // --------------------
       .then((response) => {
-        // Assuming backend sends the array directly for this endpoint
         if (Array.isArray(response.data)) {
             setReports(response.data);
         } else {
             console.error("Expected an array of reports, received:", response.data);
-            setReports([]); // Set empty array on unexpected data
+            setReports([]);
         }
       })
-      .catch((err) => {
-        console.error("❌ Error fetching reports:", err);
-        setError(err.response?.data?.message || "Failed to fetch reports.");
-      })
-      .finally(() => {
-        setIsLoading(false);
-      });
-  }, []); // Empty dependency array, runs once on mount
+      .catch((err) => { /* ... error handling ... */ setError(err.response?.data?.message || "Failed to fetch reports."); })
+      .finally(() => { setIsLoading(false); });
+  }, []);
 
   // --- Modal Logic ---
   const handleImageClick = (photos) => { if (photos && photos.length > 0) { setSelectedReportImages(photos); setCurrentImageIndex(0); }};
@@ -61,20 +51,20 @@ const PreviousReports = () => {
 
 
   return (
-    // Assuming UserLayout provides outer structure and padding
+    // Assuming UserLayout provides outer structure
     <div>
       <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
         <h2 className="text-3xl mb-8 font-bold text-gray-800 text-center tracking-tight">
           Previous Reports
         </h2>
 
+        {/* Loading/Error/No Reports states */}
         {isLoading && <p className="text-center text-gray-500">Loading your reports...</p>}
         {error && <p className="text-center text-red-500">{error}</p>}
+        {!isLoading && !error && reports.length === 0 && <p className="text-center text-gray-600 mt-10 text-lg">No reports filed yet.</p>}
 
-        {!isLoading && !error && reports.length === 0 ? (
-          <p className="text-gray-600 text-center mt-10 text-lg">No reports filed yet.</p>
-        ) : (
-          !isLoading && !error && (
+        {/* Grid */}
+        {!isLoading && !error && reports.length > 0 && (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {reports.map((report) => (
                 <ReportCard
@@ -82,22 +72,39 @@ const PreviousReports = () => {
                   report={report}
                   isAdminView={false}
                   onImageClick={handleImageClick}
+                  // Note: backendUrl defined above could also be passed as a prop to ReportCard
+                  // instead of defining it in both places, if preferred.
                 />
               ))}
             </div>
           )
-        )}
+        }
 
-        {/* Image Modal */}
+        {/* --- Image Modal --- */}
         {selectedReportImages && (
           <div className="fixed inset-0 bg-black bg-opacity-85 flex justify-center items-center z-50 p-4" onClick={closeModal} >
-             {/* Modal content */}
-             <button className="absolute top-4 right-4 text-white hover:text-gray-300 transition-colors z-50" onClick={(e) => { e.stopPropagation(); closeModal(); }} aria-label="Close image viewer"><CloseIcon /></button>
-             <div className="relative max-w-[90vw] max-h-[85vh] flex items-center justify-center" onClick={(e) => e.stopPropagation()}> <img src={`http://localhost:3000/${selectedReportImages[currentImageIndex]}`} alt={`Zoomed Image ${currentImageIndex + 1}`} className="block object-contain max-w-full max-h-full rounded-lg shadow-xl" /></div>
-             {selectedReportImages.length > 1 && (<> <button className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-gray-800 bg-opacity-50 text-white p-2 rounded-full hover:bg-opacity-75 transition-all duration-200 z-50" onClick={showPrevImage} aria-label="Previous image"><ChevronLeftIcon /></button> <button className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-gray-800 bg-opacity-50 text-white p-2 rounded-full hover:bg-opacity-75 transition-all duration-200 z-50" onClick={showNextImage} aria-label="Next image"><ChevronRightIcon /></button> <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-60 text-white text-xs font-semibold px-3 py-1 rounded-full shadow-md">{`${currentImageIndex + 1} / ${selectedReportImages.length}`}</div></>)}
+             <button className="absolute top-4 right-4 text-white ..." onClick={(e) => { e.stopPropagation(); closeModal(); }} aria-label="Close image viewer"><CloseIcon /></button>
+             <div className="relative max-w-[90vw] max-h-[85vh] flex ..." onClick={(e) => e.stopPropagation()}>
+                {/* === CHANGE IS HERE === */}
+                <img
+                    // Construct full URL using backendUrl + relative path from state
+                    src={`${backendUrl}/${selectedReportImages[currentImageIndex]}`}
+                    alt={`Zoomed Image ${currentImageIndex + 1}`}
+                    className="block object-contain max-w-full max-h-full rounded-lg shadow-xl"
+                />
+                {/* === END CHANGE === */}
+            </div>
+             {selectedReportImages.length > 1 && (
+                <>
+                    {/* Modal Nav Buttons */}
+                    <button className="absolute left-4 ..." onClick={showPrevImage} aria-label="Previous image"><ChevronLeftIcon /></button>
+                    <button className="absolute right-4 ..." onClick={showNextImage} aria-label="Next image"><ChevronRightIcon /></button>
+                    <div className="absolute bottom-4 ...">{`${currentImageIndex + 1} / ${selectedReportImages.length}`}</div>
+                </>
+             )}
           </div>
         )}
-        {/* End Image Modal */}
+        {/* --- End Image Modal --- */}
 
       </div>
     </div>
